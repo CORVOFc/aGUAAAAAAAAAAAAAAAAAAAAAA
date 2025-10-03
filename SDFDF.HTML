@@ -1,0 +1,2443 @@
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Corrida dos Estoques: Sobrevivência Aquática 3D</title>
+            <style>
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    overflow: hidden;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: #000;
+                    color: white;
+                }
+                
+                #gameContainer {
+                    position: relative;
+                    width: 100vw;
+                    height: 100vh;
+                }
+                
+                #uiContainer {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    z-index: 100;
+                }
+                
+                .hud-panel {
+                    position: absolute;
+                    padding: 15px 20px;
+                    background: rgba(0, 20, 40, 0.7);
+                    border-radius: 15px;
+                    margin: 20px;
+                    backdrop-filter: blur(5px);
+                    border: 1px solid rgba(0, 200, 255, 0.3);
+                    box-shadow: 0 0 20px rgba(0, 150, 255, 0.2);
+                }
+                
+                #topHud {
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                
+                .stat-bar-container {
+                    width: 220px;
+                    margin-bottom: 10px;
+                }
+                
+                .stat-label {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 5px;
+                    font-size: 14px;
+                    color: #a0e0ff;
+                }
+                
+                .stat-bar {
+                    height: 12px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 6px;
+                    overflow: hidden;
+                }
+                
+                .stat-fill {
+                    height: 100%;
+                    transition: width 0.3s;
+                }
+                
+                #healthFill {
+                    background: linear-gradient(to right, #ff3333, #ff9933, #66ff66);
+                }
+                
+                #staminaFill {
+                    background: linear-gradient(to right, #ffcc00, #66aaff);
+                }
+                
+                #pollutionFill {
+                    background: linear-gradient(to right, #00cc66, #ffcc00, #ff3333);
+                }
+                
+                #waterQuality {
+                    font-weight: bold;
+                    margin-top: 5px;
+                    text-align: center;
+                    font-size: 16px;
+                }
+                
+                #bottomHud {
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                    display: flex;
+                    justify-content: space-around;
+                    align-items: center;
+                }
+                
+                .hud-item {
+                    margin: 0 15px;
+                }
+                
+                .hud-value {
+                    font-size: 24px;
+                    font-weight: bold;
+                    color: #66ffff;
+                    text-shadow: 0 0 10px rgba(0, 200, 255, 0.7);
+                }
+                
+                .hud-label {
+                    font-size: 14px;
+                    color: #a0e0ff;
+                }
+                
+                #gameOverScreen {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 10, 30, 0.9);
+                    padding: 40px;
+                    border-radius: 20px;
+                    text-align: center;
+                    display: none;
+                    z-index: 200;
+                    pointer-events: auto;
+                    width: 500px;
+                    max-width: 90vw;
+                    backdrop-filter: blur(10px);
+                    border: 1px solid rgba(0, 200, 255, 0.5);
+                    box-shadow: 0 0 40px rgba(0, 150, 255, 0.3);
+                }
+                
+                #gameOverTitle {
+                    font-size: 36px;
+                    margin-bottom: 20px;
+                    color: #66ffff;
+                    text-shadow: 0 0 15px rgba(0, 200, 255, 0.8);
+                }
+                
+                #factDisplay {
+                    margin: 25px 0;
+                    font-style: italic;
+                    font-size: 18px;
+                    line-height: 1.5;
+                    color: #a0e0ff;
+                    background: rgba(0, 30, 60, 0.5);
+                    padding: 15px;
+                    border-radius: 10px;
+                    border-left: 4px solid #66ffff;
+                }
+                
+                .button {
+                    background: linear-gradient(to bottom, #00aaff, #0066cc);
+                    border: none;
+                    color: white;
+                    padding: 12px 25px;
+                    text-align: center;
+                    text-decoration: none;
+                    display: inline-block;
+                    font-size: 16px;
+                    margin: 10px;
+                    cursor: pointer;
+                    border-radius: 8px;
+                    pointer-events: auto;
+                    transition: all 0.3s;
+                    font-weight: bold;
+                    box-shadow: 0 4px 0 #004499, 0 6px 10px rgba(0, 0, 0, 0.3);
+                }
+                
+                .button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 0 #004499, 0 8px 15px rgba(0, 0, 0, 0.4);
+                }
+                
+                .button:active {
+                    transform: translateY(2px);
+                    box-shadow: 0 2px 0 #004499, 0 3px 5px rgba(0, 0, 0, 0.3);
+                }
+                
+                #shareButton {
+                    background: linear-gradient(to bottom, #3b5998, #2d4373);
+                    box-shadow: 0 4px 0 #1e2e4f, 0 6px 10px rgba(0, 0, 0, 0.3);
+                }
+                
+                #controlsHelp {
+                    position: absolute;
+                    bottom: 120px;
+                    left: 20px;
+                    background: rgba(0, 20, 40, 0.7);
+                    padding: 15px;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    line-height: 1.5;
+                    max-width: 300px;
+                    backdrop-filter: blur(5px);
+                    border: 1px solid rgba(0, 200, 255, 0.3);
+                }
+                
+                .control-item {
+                    display: flex;
+                    margin: 5px 0;
+                }
+                
+                .control-key {
+                    background: rgba(0, 100, 200, 0.7);
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    margin-right: 10px;
+                    min-width: 30px;
+                    text-align: center;
+                    font-weight: bold;
+                }
+                
+                #draftingIndicator {
+                    position: absolute;
+                    top: 50%;
+                    right: 20px;
+                    transform: translateY(-50%);
+                    background: rgba(0, 100, 200, 0.7);
+                    padding: 10px 15px;
+                    border-radius: 10px;
+                    font-size: 16px;
+                    display: none;
+                    backdrop-filter: blur(5px);
+                    border: 1px solid rgba(0, 200, 255, 0.5);
+                    box-shadow: 0 0 15px rgba(0, 150, 255, 0.5);
+                }
+                
+                .pulse {
+                    animation: pulse 1.5s infinite;
+                }
+                
+                @keyframes pulse {
+                    0% { box-shadow: 0 0 15px rgba(0, 150, 255, 0.5); }
+                    50% { box-shadow: 0 0 25px rgba(0, 200, 255, 0.8); }
+                    100% { box-shadow: 0 0 15px rgba(0, 150, 255, 0.5); }
+                }
+            </style>
+        </head>
+        <body>
+            <div id="gameContainer">
+                <div id="uiContainer">
+                    <div id="topHud" class="hud-panel">
+                        <div>
+                            <div class="stat-bar-container">
+                                <div class="stat-label">
+                                    <span>SAÚDE</span>
+                                    <span id="healthValue">100%</span>
+                                </div>
+                                <div class="stat-bar">
+                                    <div id="healthFill" class="stat-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-bar-container">
+                                <div class="stat-label">
+                                    <span>ESTAMINA</span>
+                                    <span id="staminaValue">100%</span>
+                                </div>
+                                <div class="stat-bar">
+                                    <div id="staminaFill" class="stat-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="stat-bar-container">
+                                <div class="stat-label">
+                                    <span>POLUIÇÃO DA ÁGUA</span>
+                                    <span id="pollutionValue">0%</span>
+                                </div>
+                                <div class="stat-bar">
+                                    <div id="pollutionFill" class="stat-fill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div id="waterQuality">QUALIDADE: ÓTIMA</div>
+                        </div>
+                    </div>
+                    
+                    <div id="bottomHud" class="hud-panel">
+                        <div class="hud-item">
+                            <div class="hud-value" id="zoneIndicator">ZONA 1</div>
+                            <div class="hud-label">LIMPA</div>
+                        </div>
+                        <div class="hud-item">
+                            <div class="hud-value" id="speedIndicator">0</div>
+                            <div class="hud-label">VELOCIDADE (M/S)</div>
+                        </div>
+                        <div class="hud-item">
+                            <div class="hud-value" id="depthIndicator">0</div>
+                            <div class="hud-label">PROFUNDIDADE (M)</div>
+                        </div>
+                        <div class="hud-item">
+                            <div class="hud-value" id="distanceIndicator">0</div>
+                            <div class="hud-label">DISTÂNCIA (M)</div>
+                        </div>
+                    </div>
+                    
+                    <div id="draftingIndicator" class="pulse">
+                        DRAFTING ATIVO! + VELOCIDADE
+                    </div>
+                    
+                    <div id="controlsHelp" class="hud-panel">
+                        <div style="margin-bottom: 10px; color: #66ffff; font-weight: bold;">CONTROLES</div>
+                        <div class="control-item">
+                            <div class="control-key">W</div>
+                            <div>Acelerar / Nadar para Frente</div>
+                        </div>
+                        <div class="control-item">
+                            <div class="control-key">S</div>
+                            <div>Reduzir / Nadar para Trás</div>
+                        </div>
+                        <div class="control-item">
+                            <div class="control-key">A/D</div>
+                            <div>Virar Esquerda/Direita</div>
+                        </div>
+                        <div class="control-item">
+                            <div class="control-key">Q/E</div>
+                            <div>Subir/Descer</div>
+                        </div>
+                        <div class="control-item">
+                            <div class="control-key">ESPAÇO</div>
+                            <div>Turbo (Drafting)</div>
+                        </div>
+                        <div class="control-item">
+                            <div class="control-key">SHIFT</div>
+                            <div>Nado Rápido</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="gameOverScreen">
+                    <h2 id="gameOverTitle">FIM DE CORRIDA</h2>
+                    <div id="resultStats">
+                        <div style="margin: 15px 0; font-size: 20px;">Distância Percorrida: <span id="finalDistance">0</span>m</div>
+                        <div style="margin: 15px 0; font-size: 20px;">Tempo de Sobrevivência: <span id="survivalTime">0</span>s</div>
+                    </div>
+                    <div id="factDisplay">
+                        "Cada ano, 8 milhões de toneladas de plástico chegam aos oceanos."
+                    </div>
+                    <button id="restartButton" class="button">Tentar Novamente</button>
+                    <button id="shareButton" class="button">Compartilhar Fato</button>
+                </div>
+            </div>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script>
+                // ===========================================
+                // MÓDULO PRINCIPAL DO JOGO - TRANSCENDÊNCIA SÊNIOR
+                // ===========================================
+                class AquaticRaceGame {
+                    constructor() {
+                        // Sistema de renderização avançada
+                        this.scene = null;
+                        this.camera = null;
+                        this.renderer = null;
+                        this.clock = new THREE.Clock();
+                        
+                        // Elementos do jogo
+                        this.player = null;
+                        this.npcs = [];
+                        this.obstacles = [];
+                        this.powerUps = [];
+                        this.environment = [];
+                        
+                        // Estados do jogo
+                        this.gameState = 'playing'; // playing, paused, gameOver
+                        this.currentZone = 1;
+                        this.gameTime = 0;
+                        this.distanceTraveled = 0;
+                        
+                        // Estatísticas do jogador
+                        this.playerStats = {
+                            health: 100,
+                            stamina: 100,
+                            speed: 0,
+                            maxSpeed: 35,
+                            rotationSpeed: 2.5,
+                            isBoosting: false,
+                            isDrafting: false,
+                            position: new THREE.Vector3(0, 0, 0),
+                            depth: 0
+                        };
+                        
+                        // Estatísticas do ambiente
+                        this.environmentStats = {
+                            waterQuality: 100, // 100 = ótima, 0 = tóxica
+                            pollutionLevel: 0,
+                            currentTemperature: 20,
+                            visibility: 100
+                        };
+                        
+                        // Física avançada
+                        this.physics = {
+                            waterDensity: 1.0,
+                            currentForce: new THREE.Vector3(0, 0, 0),
+                            turbulence: 0
+                        };
+                        
+                        // Inicialização do jogo
+                        this.init();
+                    }
+                    
+                    init() {
+                        this.setupScene();
+                        this.setupLighting();
+                        this.setupWater();
+                        this.setupPlayer();
+                        this.setupNPCs();
+                        this.setupEnvironment();
+                        this.setupUI();
+                        this.setupEventListeners();
+                        
+                        this.animate();
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE RENDERIZAÇÃO 3D AVANÇADO
+                    // ===========================================
+                    setupScene() {
+                        // Cena principal
+                        this.scene = new THREE.Scene();
+                        
+                        // Configuração de neblina baseada na zona
+                        this.updateFog();
+                        
+                        // Câmera em terceira pessoa avançada
+                        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+                        this.camera.position.set(0, 3, 8);
+                        
+                        // Renderizador WebGL avançado
+                        this.renderer = new THREE.WebGLRenderer({ 
+                            antialias: true,
+                            alpha: true
+                        });
+                        this.renderer.setSize(window.innerWidth, window.innerHeight);
+                        this.renderer.shadowMap.enabled = true;
+                        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                        this.renderer.setClearColor(0x000011, 1);
+                        document.getElementById('gameContainer').appendChild(this.renderer.domElement);
+                        
+                        // Sistema de partículas para bolhas
+                        this.setupBubbleParticles();
+                    }
+                    
+                    setupLighting() {
+                        // Luz ambiente subaquática
+                        const ambientLight = new THREE.AmbientLight(0x335588, 0.4);
+                        this.scene.add(ambientLight);
+                        
+                        // Luz direcional (simulando luz do sol penetrando na água)
+                        const directionalLight = new THREE.DirectionalLight(0x88ccff, 0.8);
+                        directionalLight.position.set(10, 20, 5);
+                        directionalLight.castShadow = true;
+                        directionalLight.shadow.mapSize.width = 2048;
+                        directionalLight.shadow.mapSize.height = 2048;
+                        directionalLight.shadow.camera.near = 0.5;
+                        directionalLight.shadow.camera.far = 500;
+                        this.scene.add(directionalLight);
+                        
+                        // Luz pontual para efeitos especiais
+                        const pointLight = new THREE.PointLight(0x0088ff, 0.5, 100);
+                        pointLight.position.set(0, 5, 0);
+                        this.scene.add(pointLight);
+                    }
+                    
+                    setupWater() {
+                        // Criar plano de água com textura
+                        const waterGeometry = new THREE.PlaneGeometry(1000, 1000, 50, 50);
+                        const waterMaterial = new THREE.MeshLambertMaterial({
+                            color: 0x006994,
+                            transparent: true,
+                            opacity: 0.8,
+                            side: THREE.DoubleSide
+                        });
+                        
+                        const water = new THREE.Mesh(waterGeometry, waterMaterial);
+                        water.rotation.x = -Math.PI / 2;
+                        water.position.y = -50;
+                        water.receiveShadow = true;
+                        this.scene.add(water);
+                        
+                        // Adicionar elementos do fundo do oceano
+                        this.createOceanFloor();
+                    }
+                    
+                    createOceanFloor() {
+                        // Criar fundo do oceano com textura
+                        const floorGeometry = new THREE.PlaneGeometry(1000, 1000, 50, 50);
+                        const floorMaterial = new THREE.MeshLambertMaterial({
+                            color: 0x2d5a27,
+                            side: THREE.DoubleSide
+                        });
+                        
+                        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+                        floor.rotation.x = -Math.PI / 2;
+                        floor.position.y = -100;
+                        floor.receiveShadow = true;
+                        this.scene.add(floor);
+                        
+                        // Adicionar algumas rochas e corais
+                        for (let i = 0; i < 30; i++) {
+                            const rockGeometry = new THREE.SphereGeometry(Math.random() * 5 + 2, 7, 7);
+                            const rockMaterial = new THREE.MeshLambertMaterial({
+                                color: 0x555555
+                            });
+                            
+                            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+                            rock.position.set(
+                                (Math.random() - 0.5) * 800,
+                                -95 + Math.random() * 5,
+                                (Math.random() - 0.5) * 800
+                            );
+                            rock.castShadow = true;
+                            rock.receiveShadow = true;
+                            this.scene.add(rock);
+                        }
+                    }
+                    
+                    setupBubbleParticles() {
+                        // Sistema de partículas para bolhas
+                        const bubbleGeometry = new THREE.BufferGeometry();
+                        const bubbleCount = 100;
+                        const positions = new Float32Array(bubbleCount * 3);
+                        
+                        for (let i = 0; i < bubbleCount * 3; i++) {
+                            positions[i] = (Math.random() - 0.5) * 100;
+                        }
+                        
+                        bubbleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                        
+                        const bubbleMaterial = new THREE.PointsMaterial({
+                            color: 0x88eeff,
+                            size: 0.5,
+                            transparent: true,
+                            opacity: 0.6
+                        });
+                        
+                        this.bubbleParticles = new THREE.Points(bubbleGeometry, bubbleMaterial);
+                        this.scene.add(this.bubbleParticles);
+                    }
+                    
+                    updateBubbleParticles(deltaTime) {
+                        // Animar bolhas subindo
+                        const positions = this.bubbleParticles.geometry.attributes.position.array;
+                        
+                        for (let i = 0; i < positions.length; i += 3) {
+                            // Mover bolhas para cima
+                            positions[i + 1] += deltaTime * 5;
+                            
+                            // Se a bolha chegou ao topo, reposicionar na parte inferior
+                            if (positions[i + 1] > 0) {
+                                positions[i + 1] = -50;
+                                positions[i] = (Math.random() - 0.5) * 100;
+                                positions[i + 2] = (Math.random() - 0.5) * 100;
+                            }
+                        }
+                        
+                        this.bubbleParticles.geometry.attributes.position.needsUpdate = true;
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DO JOGADOR AVANÇADO
+                    // ===========================================
+                    setupPlayer() {
+                        // Criar modelo 3D avançado do peixe jogador
+                        const bodyGeometry = new THREE.ConeGeometry(0.6, 3, 8);
+                        bodyGeometry.rotateX(Math.PI / 2);
+                        
+                        // Criar cauda do peixe
+                        const tailGeometry = new THREE.ConeGeometry(0.8, 1.5, 4);
+                        tailGeometry.rotateX(Math.PI / 2);
+                        tailGeometry.translate(-1.5, 0, 0);
+                        
+                        // Combinar geometrias
+                        const fishGeometry = new THREE.BufferGeometry();
+                        fishGeometry.setFromPoints([
+                            ...bodyGeometry.attributes.position.array,
+                            ...tailGeometry.attributes.position.array
+                        ]);
+                        
+                        const fishMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0x00aaff,
+                            shininess: 100,
+                            specular: 0x444444
+                        });
+                        
+                        this.player = new THREE.Mesh(fishGeometry, fishMaterial);
+                        this.player.castShadow = true;
+                        this.player.receiveShadow = true;
+                        this.player.position.set(0, 0, 0);
+                        
+                        // Adicionar barbatanas
+                        this.addFins();
+                        
+                        this.scene.add(this.player);
+                    }
+                    
+                    addFins() {
+                        // Barbatana dorsal
+                        const dorsalFinGeometry = new THREE.ConeGeometry(0.3, 1, 4);
+                        dorsalFinGeometry.rotateZ(Math.PI / 2);
+                        dorsalFinGeometry.translate(0, 0.5, 0);
+                        
+                        const dorsalFin = new THREE.Mesh(dorsalFinGeometry, new THREE.MeshPhongMaterial({ 
+                            color: 0x0088cc 
+                        }));
+                        this.player.add(dorsalFin);
+                        
+                        // Barbatanas peitorais
+                        const pectoralFinGeometry = new THREE.ConeGeometry(0.2, 0.8, 4);
+                        pectoralFinGeometry.rotateY(Math.PI / 2);
+                        
+                        const leftPectoralFin = new THREE.Mesh(pectoralFinGeometry, new THREE.MeshPhongMaterial({ 
+                            color: 0x0088cc 
+                        }));
+                        leftPectoralFin.position.set(0.3, 0, 0.5);
+                        leftPectoralFin.rotation.z = Math.PI / 4;
+                        this.player.add(leftPectoralFin);
+                        
+                        const rightPectoralFin = new THREE.Mesh(pectoralFinGeometry, new THREE.MeshPhongMaterial({ 
+                            color: 0x0088cc 
+                        }));
+                        rightPectoralFin.position.set(-0.3, 0, 0.5);
+                        rightPectoralFin.rotation.z = -Math.PI / 4;
+                        this.player.add(rightPectoralFin);
+                    }
+                    
+                    updatePlayer(deltaTime) {
+                        // Aplicar física de movimento subaquático
+                        this.applyWaterPhysics(deltaTime);
+                        
+                        // Atualizar animação de nado baseada na velocidade
+                        this.updateSwimAnimation(deltaTime);
+                        
+                        // Atualizar estatísticas do jogador
+                        this.updatePlayerStats(deltaTime);
+                        
+                        // Atualizar câmera para seguir o jogador
+                        this.updateCamera(deltaTime);
+                        
+                        // Atualizar profundidade
+                        this.playerStats.depth = Math.abs(this.player.position.y);
+                        document.getElementById('depthIndicator').textContent = Math.round(this.playerStats.depth);
+                        
+                        // Atualizar distância percorrida
+                        this.distanceTraveled += this.playerStats.speed * deltaTime;
+                        document.getElementById('distanceIndicator').textContent = Math.round(this.distanceTraveled);
+                    }
+                    
+                    applyWaterPhysics(deltaTime) {
+                        // Aplicar resistência da água
+                        const waterResistance = 0.95;
+                        this.playerStats.speed *= waterResistance;
+                        
+                        // Aplicar força de correnteza baseada na zona
+                        let currentStrength = 0;
+                        switch(this.currentZone) {
+                            case 1: currentStrength = 0.5; break;
+                            case 2: currentStrength = 1.0; break;
+                            case 3: currentStrength = 1.5; break;
+                        }
+                        
+                        this.physics.currentForce.set(
+                            Math.sin(this.gameTime * 0.5) * currentStrength,
+                            Math.cos(this.gameTime * 0.3) * currentStrength * 0.3,
+                            Math.sin(this.gameTime * 0.7) * currentStrength
+                        );
+                        
+                        this.player.position.add(this.physics.currentForce.clone().multiplyScalar(deltaTime));
+                        
+                        // Aplicar turbulência em zonas poluídas
+                        if (this.currentZone === 3) {
+                            this.physics.turbulence = 0.5;
+                            const turbulence = new THREE.Vector3(
+                                (Math.random() - 0.5) * this.physics.turbulence,
+                                (Math.random() - 0.5) * this.physics.turbulence,
+                                (Math.random() - 0.5) * this.physics.turbulence
+                            );
+                            this.player.position.add(turbulence.multiplyScalar(deltaTime));
+                        } else {
+                            this.physics.turbulence = 0;
+                        }
+                    }
+                    
+                    updateSwimAnimation(deltaTime) {
+                        // Animação procedural avançada de nado
+                        if (this.playerStats.speed > 0) {
+                            // Movimento da cauda baseado na velocidade
+                            const tailMovement = Math.sin(this.gameTime * 10 * this.playerStats.speed) * 0.2;
+                            this.player.rotation.z = tailMovement;
+                            
+                            // Movimento das barbatanas
+                            const finMovement = Math.sin(this.gameTime * 15 * this.playerStats.speed) * 0.3;
+                            if (this.player.children[1]) this.player.children[1].rotation.x = finMovement;
+                            if (this.player.children[2]) this.player.children[2].rotation.x = -finMovement;
+                        }
+                        
+                        // Movimento para frente baseado na velocidade
+                        const forwardDirection = new THREE.Vector3(0, 0, -1);
+                        forwardDirection.applyQuaternion(this.player.quaternion);
+                        this.player.position.add(forwardDirection.multiplyScalar(this.playerStats.speed * deltaTime));
+                    }
+                    
+                    updatePlayerStats(deltaTime) {
+                        // Reduzir estamina ao nadar rápido ou usar turbo
+                        let staminaDrain = 0;
+                        
+                        if (this.playerStats.isBoosting) {
+                            staminaDrain = 25 * deltaTime;
+                        } else if (this.playerStats.speed > this.playerStats.maxSpeed * 0.7) {
+                            staminaDrain = 15 * deltaTime;
+                        } else {
+                            // Recuperar estamina lentamente
+                            staminaDrain = -10 * deltaTime;
+                        }
+                        
+                        this.playerStats.stamina = Math.max(0, Math.min(100, this.playerStats.stamina - staminaDrain));
+                        
+                        // Se estamina está zerada, reduzir velocidade máxima
+                        if (this.playerStats.stamina === 0) {
+                            this.playerStats.maxSpeed = 20;
+                        } else {
+                            this.playerStats.maxSpeed = 35;
+                        }
+                        
+                        // Atualizar dano por poluição
+                        if (this.currentZone === 3) {
+                            this.playerStats.health -= 5 * deltaTime;
+                        } else if (this.currentZone === 2) {
+                            this.playerStats.health -= 1 * deltaTime;
+                        }
+                        
+                        // Limitar valores
+                        this.playerStats.health = Math.max(0, Math.min(100, this.playerStats.health));
+                        
+                        // Atualizar UI
+                        document.getElementById('healthFill').style.width = `${this.playerStats.health}%`;
+                        document.getElementById('staminaFill').style.width = `${this.playerStats.stamina}%`;
+                        document.getElementById('speedIndicator').textContent = Math.round(this.playerStats.speed);
+                        
+                        document.getElementById('healthValue').textContent = `${Math.round(this.playerStats.health)}%`;
+                        document.getElementById('staminaValue').textContent = `${Math.round(this.playerStats.stamina)}%`;
+                        
+                        // Verificar se o jogador morreu
+                        if (this.playerStats.health <= 0) {
+                            this.gameOver();
+                        }
+                    }
+                    
+                    updateCamera(deltaTime) {
+                        // Sistema de câmera avançado que segue o peixe suavemente
+                        const cameraOffset = new THREE.Vector3(0, 3, 8);
+                        cameraOffset.applyQuaternion(this.player.quaternion);
+                        
+                        const targetPosition = this.player.position.clone().add(cameraOffset);
+                        
+                        // Suavizar movimento da câmera
+                        this.camera.position.lerp(targetPosition, 5 * deltaTime);
+                        this.camera.lookAt(this.player.position);
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE IA AVANÇADA PARA NPCs
+                    // ===========================================
+                    setupNPCs() {
+                        // Criar NPCs com comportamentos diferentes
+                        const npcTypes = [
+                            { color: 0xff6600, speed: 12, size: 0.9, behavior: 'aggressive' },
+                            { color: 0x44aa88, speed: 10, size: 1.1, behavior: 'defensive' },
+                            { color: 0xaa44aa, speed: 14, size: 0.8, behavior: 'erratic' },
+                            { color: 0xdddd00, speed: 11, size: 1.0, behavior: 'balanced' },
+                            { color: 0x8888ff, speed: 13, size: 0.9, behavior: 'opportunistic' }
+                        ];
+                        
+                        for (let i = 0; i < 8; i++) {
+                            this.createNPC(i, npcTypes[i % npcTypes.length]);
+                        }
+                    }
+                    
+                    createNPC(id, type) {
+                        const npcGeometry = new THREE.ConeGeometry(0.5 * type.size, 2.5 * type.size, 8);
+                        npcGeometry.rotateX(Math.PI / 2);
+                        
+                        const npcMaterial = new THREE.MeshPhongMaterial({ 
+                            color: type.color,
+                            shininess: 100
+                        });
+                        
+                        const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                        npc.castShadow = true;
+                        npc.receiveShadow = true;
+                        
+                        // Posicionar NPC em posição inicial aleatória
+                        const startX = (Math.random() - 0.5) * 20;
+                        const startY = (Math.random() - 0.5) * 10;
+                        const startZ = -30 - (id * 15);
+                        npc.position.set(startX, startY, startZ);
+                        
+                        // Adicionar dados de IA avançada ao NPC
+                        npc.userData = {
+                            id: id,
+                            type: type.behavior,
+                            speed: type.speed,
+                            health: 100,
+                            originalSpeed: type.speed,
+                            path: this.generateNPCPath(),
+                            currentPathIndex: 0,
+                            decisionTimer: 0,
+                            isDrafting: false,
+                            avoidanceVector: new THREE.Vector3(0, 0, 0),
+                            targetPosition: new THREE.Vector3(0, 0, 0),
+                            state: 'racing' // racing, avoiding, recovering
+                        };
+                        
+                        this.npcs.push(npc);
+                        this.scene.add(npc);
+                    }
+                    
+                    generateNPCPath() {
+                        // Gerar caminho 3D complexo para NPCs
+                        const path = [];
+                        const segments = 25;
+                        
+                        for (let i = 0; i < segments; i++) {
+                            // Criar pontos ao longo do caminho com variação 3D
+                            const x = (Math.random() - 0.5) * 15;
+                            const y = (Math.random() - 0.5) * 8;
+                            const z = -i * 20;
+                            path.push(new THREE.Vector3(x, y, z));
+                        }
+                        
+                        return path;
+                    }
+                    
+                    updateNPCs(deltaTime) {
+                        this.npcs.forEach(npc => {
+                            const npcData = npc.userData;
+                            
+                            // Comportamento de busca de caminho avançado
+                            this.followPath(npc, npcData, deltaTime);
+                            
+                            // IA de decisão - reagir à poluição e outros perigos
+                            this.makeNPCDecision(npc, npcData, deltaTime);
+                            
+                            // Mecânica de drafting
+                            this.checkDrafting(npc, npcData);
+                            
+                            // Atualizar animação de nado
+                            this.updateNPCAnimation(npc, npcData, deltaTime);
+                            
+                            // Aplicar comportamentos específicos por tipo
+                            this.applyNPCBehavior(npc, npcData, deltaTime);
+                        });
+                    }
+                    
+                    followPath(npc, npcData, deltaTime) {
+                        if (npcData.path.length === 0) return;
+                        
+                        const targetPoint = npcData.path[npcData.currentPathIndex];
+                        const direction = new THREE.Vector3().subVectors(targetPoint, npc.position);
+                        
+                        // Verificar se chegou ao ponto atual do caminho
+                        if (direction.length() < 3) {
+                            npcData.currentPathIndex = (npcData.currentPathIndex + 1) % npcData.path.length;
+                        } else {
+                            // Mover em direção ao ponto com comportamento de suavização
+                            direction.normalize();
+                            
+                            // Aplicar vetor de evasão se necessário
+                            if (npcData.avoidanceVector.length() > 0) {
+                                direction.add(npcData.avoidanceVector.multiplyScalar(0.3));
+                                direction.normalize();
+                                npcData.avoidanceVector.multiplyScalar(0.9); // Reduzir evasão ao longo do tempo
+                            }
+                            
+                            npc.position.add(direction.multiplyScalar(npcData.speed * deltaTime));
+                            
+                            // Rotacionar na direção do movimento (suavizado)
+                            const targetQuaternion = new THREE.Quaternion();
+                            targetQuaternion.setFromRotationMatrix(
+                                new THREE.Matrix4().lookAt(npc.position, npc.position.clone().add(direction), new THREE.Vector3(0, 1, 0))
+                            );
+                            npc.quaternion.slerp(targetQuaternion, 5 * deltaTime);
+                        }
+                    }
+                    
+                    makeNPCDecision(npc, npcData, deltaTime) {
+                        npcData.decisionTimer += deltaTime;
+                        
+                        // Tomar decisões a cada 0.5-2 segundos (varia por tipo de NPC)
+                        let decisionInterval = 1.0;
+                        switch(npcData.type) {
+                            case 'aggressive': decisionInterval = 0.5; break;
+                            case 'defensive': decisionInterval = 2.0; break;
+                            case 'erratic': decisionInterval = 0.3; break;
+                            default: decisionInterval = 1.0;
+                        }
+                        
+                        if (npcData.decisionTimer > decisionInterval) {
+                            npcData.decisionTimer = 0;
+                            
+                            // Reagir à poluição baseado na zona atual e tipo de NPC
+                            if (this.currentZone === 3 && npcData.health < 40) {
+                                // Em zona pesada com saúde baixa, procurar rota alternativa
+                                if (npcData.type !== 'aggressive') {
+                                    this.avoidPollution(npc, npcData);
+                                }
+                            }
+                            
+                            // Usar power-up se disponível e saúde crítica
+                            if (npcData.health < 30 && Math.random() > 0.5) {
+                                this.usePurificationPowerUp(npc, npcData);
+                            }
+                            
+                            // Comportamento de evasão de obstáculos
+                            this.avoidObstacles(npc, npcData);
+                        }
+                    }
+                    
+                    avoidPollution(npc, npcData) {
+                        // Buscar rota menos poluída baseada no comportamento
+                        let avoidanceStrength = 0;
+                        switch(npcData.type) {
+                            case 'defensive': avoidanceStrength = 2.0; break;
+                            case 'balanced': avoidanceStrength = 1.0; break;
+                            case 'opportunistic': avoidanceStrength = 0.5; break;
+                            default: avoidanceStrength = 0;
+                        }
+                        
+                        if (avoidanceStrength > 0) {
+                            // Calcular direção para fugir da poluição (em direção à superfície)
+                            const surfaceDirection = new THREE.Vector3(0, 1, 0);
+                            npcData.avoidanceVector.add(surfaceDirection.multiplyScalar(avoidanceStrength));
+                            
+                            // Mudar estado para evitar poluição
+                            npcData.state = 'avoiding';
+                            setTimeout(() => {
+                                npcData.state = 'racing';
+                            }, 3000);
+                        }
+                    }
+                    
+                    avoidObstacles(npc, npcData) {
+                        // Verificar obstáculos próximos
+                        let obstacleNearby = false;
+                        let avoidanceDirection = new THREE.Vector3();
+                        
+                        this.obstacles.forEach(obstacle => {
+                            const distance = npc.position.distanceTo(obstacle.position);
+                            if (distance < 8) {
+                                obstacleNearby = true;
+                                const directionAway = new THREE.Vector3().subVectors(npc.position, obstacle.position).normalize();
+                                avoidanceDirection.add(directionAway.multiplyScalar(10 / distance)); // Mais forte quanto mais próximo
+                            }
+                        });
+                        
+                        if (obstacleNearby) {
+                            npcData.avoidanceVector.add(avoidanceDirection.normalize());
+                        }
+                    }
+                    
+                    usePurificationPowerUp(npc, npcData) {
+                        // Simular uso de power-up de purificação
+                        npcData.health += 40;
+                        npcData.health = Math.min(100, npcData.health);
+                        
+                        // Efeito visual temporário
+                        npc.material.color.set(0x00ff00);
+                        setTimeout(() => {
+                            npc.material.color.setHex(npc.userData.type === 'aggressive' ? 0xff6600 : 
+                                                    npc.userData.type === 'defensive' ? 0x44aa88 :
+                                                    npc.userData.type === 'erratic' ? 0xaa44aa :
+                                                    npc.userData.type === 'balanced' ? 0xdddd00 : 0x8888ff);
+                        }, 1000);
+                    }
+                    
+                    applyNPCBehavior(npc, npcData, deltaTime) {
+                        // Aplicar comportamentos específicos baseados no tipo de NPC
+                        switch(npcData.type) {
+                            case 'aggressive':
+                                // NPCs agressivos tentam alcançar o jogador
+                                if (npcData.state === 'racing') {
+                                    const toPlayer = new THREE.Vector3().subVectors(this.player.position, npc.position);
+                                    if (toPlayer.length() < 15) {
+                                        npcData.targetPosition.copy(this.player.position);
+                                        const direction = new THREE.Vector3().subVectors(npcData.targetPosition, npc.position).normalize();
+                                        npc.position.add(direction.multiplyScalar(npcData.speed * 1.2 * deltaTime));
+                                    }
+                                }
+                                break;
+                                
+                            case 'erratic':
+                                // NPCs erráticos mudam de direção frequentemente
+                                if (Math.random() < 0.02) {
+                                    npcData.avoidanceVector.set(
+                                        (Math.random() - 0.5) * 2,
+                                        (Math.random() - 0.5) * 2,
+                                        (Math.random() - 0.5) * 2
+                                    );
+                                }
+                                break;
+                                
+                            case 'opportunistic':
+                                // NPCs oportunistas procuram por power-ups
+                                // (implementação simplificada)
+                                if (npcData.health < 50 && Math.random() < 0.01) {
+                                    npcData.state = 'recovering';
+                                    npcData.speed = npcData.originalSpeed * 0.7;
+                                    setTimeout(() => {
+                                        npcData.state = 'racing';
+                                        npcData.speed = npcData.originalSpeed;
+                                    }, 2000);
+                                }
+                                break;
+                        }
+                    }
+                    
+                    checkDrafting(npc, npcData) {
+                        // Verificar se o jogador está atrás deste NPC (mecânica de drafting)
+                        const playerToNPC = new THREE.Vector3().subVectors(npc.position, this.player.position);
+                        const distance = playerToNPC.length();
+                        const dotProduct = playerToNPC.normalize().dot(this.player.getWorldDirection(new THREE.Vector3()));
+                        
+                        // Se o jogador está próximo e atrás do NPC, aplicar drafting
+                        if (distance < 4 && dotProduct > 0.7) {
+                            npcData.isDrafting = true;
+                            // NPC sofre penalidade de velocidade quando está sendo "draftado"
+                            npcData.speed = Math.max(5, npcData.originalSpeed - 3);
+                        } else {
+                            npcData.isDrafting = false;
+                            // Restaurar velocidade normal
+                            npcData.speed = npcData.originalSpeed;
+                        }
+                    }
+                    
+                    updateNPCAnimation(npc, npcData, deltaTime) {
+                        // Animação procedural de nado baseada na velocidade
+                        const tailMovement = Math.sin(this.gameTime * 12 * npcData.speed) * 0.15;
+                        npc.rotation.z = tailMovement;
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE AMBIENTE E NÍVEIS DINÂMICOS
+                    // ===========================================
+                    setupEnvironment() {
+                        // Criar pista subaquática
+                        this.createTrack();
+                        
+                        // Gerar obstáculos iniciais
+                        this.generateObstacles();
+                        
+                        // Gerar power-ups
+                        this.generatePowerUps();
+                    }
+                    
+                    createTrack() {
+                        // Criar marcadores de pista
+                        for (let i = 0; i < 50; i++) {
+                            const markerGeometry = new THREE.CylinderGeometry(0.1, 0.1, 5, 8);
+                            const markerMaterial = new THREE.MeshPhongMaterial({ 
+                                color: 0x00ff00,
+                                transparent: true,
+                                opacity: 0.7
+                            });
+                            
+                            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+                            marker.position.set(
+                                (Math.random() - 0.5) * 30,
+                                (Math.random() - 0.5) * 10,
+                                -i * 40
+                            );
+                            marker.castShadow = true;
+                            this.scene.add(marker);
+                        }
+                    }
+                    
+                    generateObstacles() {
+                        // Gerar obstáculos aleatórios ao longo da pista
+                        const obstacleCount = 40;
+                        
+                        for (let i = 0; i < obstacleCount; i++) {
+                            const obstacleType = Math.floor(Math.random() * 4); // 0: bóia, 1: rede, 2: lixo, 3: tubulação
+                            const obstacle = this.createObstacle(obstacleType);
+                            
+                            // Posicionar em local aleatório ao longo da pista
+                            obstacle.position.x = (Math.random() - 0.5) * 25;
+                            obstacle.position.y = (Math.random() - 0.5) * 8;
+                            obstacle.position.z = -60 - (i * 25);
+                            
+                            this.obstacles.push(obstacle);
+                            this.scene.add(obstacle);
+                        }
+                    }
+                    
+                    createObstacle(type) {
+                        let geometry, material;
+                        
+                        switch(type) {
+                            case 0: // Bóia
+                                geometry = new THREE.CylinderGeometry(0.8, 0.8, 0.3, 16);
+                                material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+                                break;
+                            case 1: // Rede
+                                geometry = new THREE.BoxGeometry(3, 4, 0.2);
+                                material = new THREE.MeshPhongMaterial({ color: 0xcccccc });
+                                break;
+                            case 2: // Lixo
+                                geometry = new THREE.SphereGeometry(0.8, 8, 6);
+                                material = new THREE.MeshPhongMaterial({ color: 0x666666 });
+                                break;
+                            case 3: // Tubulação
+                                geometry = new THREE.CylinderGeometry(1.2, 1.2, 8, 16);
+                                material = new THREE.MeshPhongMaterial({ color: 0x888888 });
+                                break;
+                        }
+                        
+                        const obstacle = new THREE.Mesh(geometry, material);
+                        obstacle.castShadow = true;
+                        obstacle.receiveShadow = true;
+                        
+                        // Adicionar dados de colisão
+                        obstacle.userData = {
+                            type: type,
+                            damage: type === 1 ? 25 : (type === 3 ? 30 : 15) // Redes e tubulações causam mais dano
+                        };
+                        
+                        return obstacle;
+                    }
+                    
+                    generatePowerUps() {
+                        // Gerar power-ups ao longo da pista
+                        const powerUpCount = 15;
+                        
+                        for (let i = 0; i < powerUpCount; i++) {
+                            const powerUpType = Math.floor(Math.random() * 3); // 0: saúde, 1: estamina, 2: purificação
+                            const powerUp = this.createPowerUp(powerUpType);
+                            
+                            // Posicionar em local aleatório
+                            powerUp.position.x = (Math.random() - 0.5) * 20;
+                            powerUp.position.y = (Math.random() - 0.5) * 6;
+                            powerUp.position.z = -50 - (i * 40);
+                            
+                            this.powerUps.push(powerUp);
+                            this.scene.add(powerUp);
+                        }
+                    }
+                    
+                    createPowerUp(type) {
+                        let geometry, material, color;
+                        
+                        switch(type) {
+                            case 0: // Saúde
+                                geometry = new THREE.OctahedronGeometry(0.6);
+                                color = 0xff4444;
+                                break;
+                            case 1: // Estamina
+                                geometry = new THREE.OctahedronGeometry(0.6);
+                                color = 0x4444ff;
+                                break;
+                            case 2: // Purificação
+                                geometry = new THREE.OctahedronGeometry(0.6);
+                                color = 0x44ff44;
+                                break;
+                        }
+                        
+                        material = new THREE.MeshPhongMaterial({ 
+                            color: color,
+                            emissive: color,
+                            emissiveIntensity: 0.5
+                        });
+                        
+                        const powerUp = new THREE.Mesh(geometry, material);
+                        powerUp.castShadow = true;
+                        
+                        // Adicionar dados do power-up
+                        powerUp.userData = {
+                            type: type,
+                            value: type === 0 ? 30 : (type === 1 ? 50 : 40)
+                        };
+                        
+                        return powerUp;
+                    }
+                    
+                    updateEnvironment(deltaTime) {
+                        // Atualizar zona baseada na posição do jogador
+                        this.updateZone();
+                        
+                        // Atualizar qualidade da água baseada na zona
+                        this.updateWaterQuality();
+                        
+                        // Atualizar efeitos visuais do ambiente
+                        this.updateVisualEffects(deltaTime);
+                        
+                        // Animar power-ups
+                        this.animatePowerUps(deltaTime);
+                    }
+                    
+                    updateZone() {
+                        const playerZ = Math.abs(this.player.position.z);
+                        
+                        if (playerZ < 150) {
+                            this.currentZone = 1; // Zona Limpa
+                        } else if (playerZ < 450) {
+                            this.currentZone = 2; // Zona Moderada
+                        } else {
+                            this.currentZone = 3; // Zona Pesada
+                        }
+                        
+                        // Atualizar indicador de zona na UI
+                        const zoneNames = ['ZONA 1', 'ZONA 2', 'ZONA 3'];
+                        const zoneDescriptions = ['LIMPA', 'MODERADA', 'POLUÍDA'];
+                        document.getElementById('zoneIndicator').textContent = zoneNames[this.currentZone - 1];
+                        document.querySelector('#bottomHud .hud-item:first-child .hud-label').textContent = zoneDescriptions[this.currentZone - 1];
+                        
+                        // Aplicar efeitos visuais baseados na zona
+                        this.applyZoneEffects();
+                    }
+                    
+                    applyZoneEffects() {
+                        // Aplicar efeitos visuais baseados na zona de poluição
+                        switch(this.currentZone) {
+                            case 1: // Zona Limpa
+                                this.scene.fog = new THREE.Fog(0x1a2980, 50, 200);
+                                this.environmentStats.visibility = 100;
+                                break;
+                            case 2: // Zona Moderada
+                                this.scene.fog = new THREE.Fog(0x3a4980, 30, 120);
+                                this.environmentStats.visibility = 70;
+                                break;
+                            case 3: // Zona Pesada
+                                this.scene.fog = new THREE.Fog(0x5a2920, 15, 60);
+                                this.environmentStats.visibility = 40;
+                                break;
+                        }
+                    }
+                    
+                    updateFog() {
+                        // Configurar neblina baseada na zona atual
+                        this.applyZoneEffects();
+                    }
+                    
+                    updateWaterQuality() {
+                        // Calcular qualidade da água baseada na zona
+                        const baseQuality = 100 - ((this.currentZone - 1) * 40);
+                        const randomVariation = (Math.random() - 0.5) * 10;
+                        this.environmentStats.waterQuality = Math.max(0, Math.min(100, baseQuality + randomVariation));
+                        
+                        // Atualizar UI
+                        const pollutionLevel = 100 - this.environmentStats.waterQuality;
+                        document.getElementById('pollutionFill').style.width = `${pollutionLevel}%`;
+                        document.getElementById('pollutionValue').textContent = `${Math.round(pollutionLevel)}%`;
+                        
+                        // Atualizar texto descritivo
+                        let qualityText = '';
+                        if (this.environmentStats.waterQuality > 80) qualityText = 'QUALIDADE: ÓTIMA';
+                        else if (this.environmentStats.waterQuality > 60) qualityText = 'QUALIDADE: BOA';
+                        else if (this.environmentStats.waterQuality > 40) qualityText = 'QUALIDADE: MODERADA';
+                        else if (this.environmentStats.waterQuality > 20) qualityText = 'QUALIDADE: RUIM';
+                        else qualityText = 'QUALIDADE: TÓXICA';
+                        
+                        document.getElementById('waterQuality').textContent = qualityText;
+                    }
+                    
+                    updateVisualEffects(deltaTime) {
+                        // Atualizar efeitos visuais baseados nas condições atuais
+                        this.gameTime += deltaTime;
+                        
+                        // Efeito de partículas de poluição na zona 3
+                        if (this.currentZone === 3 && Math.random() < 0.1) {
+                            this.createPollutionParticle();
+                        }
+                    }
+                    
+                    createPollutionParticle() {
+                        // Criar partícula de poluição visual
+                        const particleGeometry = new THREE.SphereGeometry(0.2, 4, 4);
+                        const particleMaterial = new THREE.MeshPhongMaterial({
+                            color: 0x664411,
+                            transparent: true,
+                            opacity: 0.7
+                        });
+                        
+                        const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                        particle.position.set(
+                            (Math.random() - 0.5) * 50,
+                            (Math.random() - 0.5) * 20,
+                            this.player.position.z - 30
+                        );
+                        
+                        this.scene.add(particle);
+                        
+                        // Remover partícula após um tempo
+                        setTimeout(() => {
+                            this.scene.remove(particle);
+                        }, 5000);
+                    }
+                    
+                    animatePowerUps(deltaTime) {
+                        // Animar power-ups (rotação e flutuação)
+                        this.powerUps.forEach(powerUp => {
+                            powerUp.rotation.y += deltaTime * 2;
+                            powerUp.position.y += Math.sin(this.gameTime * 3 + powerUp.position.z) * 0.01;
+                        });
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE FÍSICA E COLISÕES AVANÇADO
+                    // ===========================================
+                    checkCollisions() {
+                        // Verificar colisões entre jogador e obstáculos
+                        this.obstacles.forEach(obstacle => {
+                            const distance = this.player.position.distanceTo(obstacle.position);
+                            
+                            if (distance < 2) { // Distância de colisão
+                                this.handleCollision(obstacle);
+                            }
+                        });
+                        
+                        // Verificar colisões entre jogador e NPCs
+                        this.npcs.forEach(npc => {
+                            const distance = this.player.position.distanceTo(npc.position);
+                            
+                            if (distance < 1.5) { // Distância de colisão com NPC
+                                this.handleNPCCollision(npc);
+                            }
+                        });
+                        
+                        // Verificar colisões com power-ups
+                        this.checkPowerUpCollisions();
+                    }
+                    
+                    handleCollision(obstacle) {
+                        // Aplicar dano baseado no tipo de obstáculo
+                        this.playerStats.health -= obstacle.userData.damage;
+                        
+                        // Aplicar força de repulsão realista
+                        const direction = new THREE.Vector3().subVectors(this.player.position, obstacle.position).normalize();
+                        const force = 3 + (obstacle.userData.damage / 10);
+                        this.player.position.add(direction.multiplyScalar(force));
+                        
+                        // Reduzir velocidade temporariamente
+                        this.playerStats.speed = Math.max(0, this.playerStats.speed - 8);
+                        
+                        // Efeito visual de colisão
+                        this.player.material.color.set(0xff0000);
+                        setTimeout(() => {
+                            this.player.material.color.set(0x00aaff);
+                        }, 200);
+                        
+                        // Verificar se o jogador morreu
+                        if (this.playerStats.health <= 0) {
+                            this.gameOver();
+                        }
+                    }
+                    
+                    handleNPCCollision(npc) {
+                        // Colisão com NPC causa dano menor
+                        this.playerStats.health -= 8;
+                        
+                        // Aplicar força de repulsão
+                        const direction = new THREE.Vector3().subVectors(this.player.position, npc.position).normalize();
+                        this.player.position.add(direction.multiplyScalar(2));
+                        
+                        // Reduzir velocidade
+                        this.playerStats.speed = Math.max(0, this.playerStats.speed - 5);
+                        
+                        // Verificar se o jogador morreu
+                        if (this.playerStats.health <= 0) {
+                            this.gameOver();
+                        }
+                    }
+                    
+                    checkPowerUpCollisions() {
+                        // Verificar colisões com power-ups
+                        for (let i = this.powerUps.length - 1; i >= 0; i--) {
+                            const powerUp = this.powerUps[i];
+                            const distance = this.player.position.distanceTo(powerUp.position);
+                            
+                            if (distance < 1.5) {
+                                this.collectPowerUp(powerUp, i);
+                            }
+                        }
+                    }
+                    
+                    collectPowerUp(powerUp, index) {
+                        // Aplicar efeito do power-up
+                        switch(powerUp.userData.type) {
+                            case 0: // Saúde
+                                this.playerStats.health = Math.min(100, this.playerStats.health + powerUp.userData.value);
+                                break;
+                            case 1: // Estamina
+                                this.playerStats.stamina = Math.min(100, this.playerStats.stamina + powerUp.userData.value);
+                                break;
+                            case 2: // Purificação
+                                // Reduz temporariamente os efeitos da poluição
+                                this.environmentStats.waterQuality = Math.min(100, this.environmentStats.waterQuality + 30);
+                                setTimeout(() => {
+                                    this.environmentStats.waterQuality -= 30;
+                                }, 10000);
+                                break;
+                        }
+                        
+                        // Remover power-up da cena
+                        this.scene.remove(powerUp);
+                        this.powerUps.splice(index, 1);
+                        
+                        // Efeito visual de coleta
+                        this.player.material.color.set(0xffff00);
+                        setTimeout(() => {
+                            this.player.material.color.set(0x00aaff);
+                        }, 300);
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE UI/UX IMERSIVO
+                    // ===========================================
+                    setupUI() {
+                        // Configurar eventos dos botões
+                        document.getElementById('restartButton').addEventListener('click', () => {
+                            this.restartGame();
+                        });
+                        
+                        document.getElementById('shareButton').addEventListener('click', () => {
+                            this.shareFact();
+                        });
+                    }
+                    
+                    updateUI() {
+                        // Atualizar barras de status
+                        document.getElementById('healthFill').style.width = `${this.playerStats.health}%`;
+                        document.getElementById('staminaFill').style.width = `${this.playerStats.stamina}%`;
+                        
+                        const pollutionLevel = 100 - this.environmentStats.waterQuality;
+                        document.getElementById('pollutionFill').style.width = `${pollutionLevel}%`;
+                        
+                        // Atualizar indicador de drafting
+                        if (this.playerStats.isDrafting) {
+                            document.getElementById('draftingIndicator').style.display = 'block';
+                        } else {
+                            document.getElementById('draftingIndicator').style.display = 'none';
+                        }
+                    }
+                    
+                    gameOver() {
+                        this.gameState = 'gameOver';
+                        
+                        // Calcular tempo de sobrevivência
+                        const survivalTime = Math.round(this.gameTime);
+                        
+                        // Mostrar tela de game over
+                        document.getElementById('gameOverScreen').style.display = 'block';
+                        document.getElementById('gameOverTitle').textContent = 'FIM DE CORRIDA';
+                        document.getElementById('finalDistance').textContent = Math.round(this.distanceTraveled);
+                        document.getElementById('survivalTime').textContent = survivalTime;
+                        
+                        // Mostrar fato ambiental aleatório
+                        this.displayRandomFact();
+                    }
+                    
+                    displayRandomFact() {
+                        const facts = [
+                            "Cada ano, 8 milhões de toneladas de plástico chegam aos oceanos.",
+                            "Mais de 100 mil animais marinhos morrem anualmente por ingestão de plástico.",
+                            "Até 2050, pode haver mais plástico que peixes nos oceanos.",
+                            "A poluição das águas afeta 1 bilhão de pessoas no mundo.",
+                            "Apenas 9% de todo o plástico já produzido foi reciclado.",
+                            "Microplásticos foram encontrados em 90% da água engarrafada.",
+                            "A poluição por plástico mata 1 milhão de aves marinhas por ano.",
+                            "Cada pessoa ingere aproximadamente 5 gramas de plástico por semana."
+                        ];
+                        
+                        const randomFact = facts[Math.floor(Math.random() * facts.length)];
+                        document.getElementById('factDisplay').textContent = `"${randomFact}"`;
+                    }
+                    
+                    shareFact() {
+                        // Simular compartilhamento em redes sociais
+                        const factText = document.getElementById('factDisplay').textContent;
+                        alert(`Compartilhando fato ambiental:\n${factText}\n\n(Em uma implementação completa, isso abriria diálogos de compartilhamento nativos)`);
+                    }
+                    
+                    restartGame() {
+                        // Recarregar a página para reiniciar
+                        location.reload();
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE CONTROLES E EVENTOS AVANÇADOS
+                    // ===========================================
+                    setupEventListeners() {
+                        // Controles de teclado avançados
+                        this.keys = {};
+                        
+                        document.addEventListener('keydown', (event) => {
+                            if (this.gameState !== 'playing') return;
+                            
+                            this.keys[event.key.toLowerCase()] = true;
+                            
+                            // Turbo com barra de espaço
+                            if (event.key === ' ' && !event.repeat) {
+                                this.applyDraftingBoost();
+                            }
+                        });
+                        
+                        document.addEventListener('keyup', (event) => {
+                            this.keys[event.key.toLowerCase()] = false;
+                        });
+                        
+                        // Redimensionar janela
+                        window.addEventListener('resize', () => {
+                            this.camera.aspect = window.innerWidth / window.innerHeight;
+                            this.camera.updateProjectionMatrix();
+                            this.renderer.setSize(window.innerWidth, window.innerHeight);
+                        });
+                    }
+                    
+                    handlePlayerInput(deltaTime) {
+                        // Controles avançados de movimento
+                        let moveSpeed = this.playerStats.speed;
+                        let rotationSpeed = this.playerStats.rotationSpeed;
+                        
+                        // Acelerar/Desacelerar
+                        if (this.keys['w'] || this.keys['arrowup']) {
+                            moveSpeed = Math.min(this.playerStats.maxSpeed, moveSpeed + 15 * deltaTime);
+                        }
+                        if (this.keys['s'] || this.keys['arrowdown']) {
+                            moveSpeed = Math.max(-this.playerStats.maxSpeed * 0.5, moveSpeed - 20 * deltaTime);
+                        }
+                        
+                        // Nado rápido (Shift)
+                        if ((this.keys['shift'] || this.keys['shiftright']) && this.playerStats.stamina > 10) {
+                            moveSpeed = Math.min(this.playerStats.maxSpeed * 1.5, moveSpeed + 20 * deltaTime);
+                            this.playerStats.isBoosting = true;
+                        } else {
+                            this.playerStats.isBoosting = false;
+                        }
+                        
+                        // Virar esquerda/direita
+                        if (this.keys['a'] || this.keys['arrowleft']) {
+                            this.player.rotation.y += rotationSpeed * deltaTime;
+                        }
+                        if (this.keys['d'] || this.keys['arrowright']) {
+                            this.player.rotation.y -= rotationSpeed * deltaTime;
+                        }
+                        
+                        // Subir/Descer
+                        if (this.keys['q'] || this.keys['pageup']) {
+                            this.player.position.y += 5 * deltaTime;
+                        }
+                        if (this.keys['e'] || this.keys['pagedown']) {
+                            this.player.position.y -= 5 * deltaTime;
+                        }
+                        
+                        // Limitar movimento vertical
+                        this.player.position.y = Math.max(-25, Math.min(5, this.player.position.y));
+                        
+                        this.playerStats.speed = moveSpeed;
+                    }
+                    
+                    applyDraftingBoost() {
+                        // Verificar se o jogador está atrás de um NPC para aplicar drafting
+                        let canBoost = false;
+                        
+                        this.npcs.forEach(npc => {
+                            const playerToNPC = new THREE.Vector3().subVectors(npc.position, this.player.position);
+                            const distance = playerToNPC.length();
+                            const dotProduct = playerToNPC.normalize().dot(this.player.getWorldDirection(new THREE.Vector3()));
+                            
+                            if (distance < 4 && dotProduct > 0.7) {
+                                canBoost = true;
+                            }
+                        });
+                        
+                        if (canBoost && this.playerStats<!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Corrida dos Estoques: Sobrevivência Aquática</title>
+            <style>
+                body {
+                    margin: 0;
+                    padding: 0;
+                    overflow: hidden;
+                    font-family: 'Arial', sans-serif;
+                    background: linear-gradient(to bottom, #1a2980, #26d0ce);
+                    color: white;
+                }
+                
+                #gameContainer {
+                    position: relative;
+                    width: 100vw;
+                    height: 100vh;
+                }
+                
+                #uiContainer {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    pointer-events: none;
+                    z-index: 10;
+                }
+                
+                .hud {
+                    position: absolute;
+                    padding: 15px;
+                    background: rgba(0, 0, 0, 0.6);
+                    border-radius: 10px;
+                    margin: 20px;
+                }
+                
+                #topHud {
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    display: flex;
+                    justify-content: space-between;
+                }
+                
+                #healthBar, #staminaBar, #pollutionBar {
+                    width: 200px;
+                    height: 20px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border-radius: 10px;
+                    overflow: hidden;
+                    margin-bottom: 8px;
+                }
+                
+                #healthFill {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(to right, #ff0000, #00ff00);
+                    transition: width 0.3s;
+                }
+                
+                #staminaFill {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(to right, #ffff00, #0000ff);
+                    transition: width 0.3s;
+                }
+                
+                #pollutionFill {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(to right, #00ff00, #ff0000);
+                    transition: width 0.3s;
+                }
+                
+                #bottomHud {
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    text-align: center;
+                }
+                
+                #gameOverScreen {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    padding: 30px;
+                    border-radius: 15px;
+                    text-align: center;
+                    display: none;
+                    z-index: 20;
+                    pointer-events: auto;
+                }
+                
+                button {
+                    background: #4CAF50;
+                    border: none;
+                    color: white;
+                    padding: 10px 20px;
+                    text-align: center;
+                    text-decoration: none;
+                    display: inline-block;
+                    font-size: 16px;
+                    margin: 10px 2px;
+                    cursor: pointer;
+                    border-radius: 5px;
+                    pointer-events: auto;
+                }
+                
+                #shareButton {
+                    background: #3b5998;
+                }
+                
+                #factDisplay {
+                    margin: 20px 0;
+                    font-style: italic;
+                }
+            </style>
+        </head>
+        <body>
+            <div id="gameContainer">
+                <div id="uiContainer">
+                    <div id="topHud" class="hud">
+                        <div>
+                            <div>Saúde</div>
+                            <div id="healthBar">
+                                <div id="healthFill"></div>
+                            </div>
+                            <div>Estamina</div>
+                            <div id="staminaBar">
+                                <div id="staminaFill"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div>Qualidade da Água</div>
+                            <div id="pollutionBar">
+                                <div id="pollutionFill"></div>
+                            </div>
+                            <div id="waterQuality">Ótima</div>
+                        </div>
+                    </div>
+                    
+                    <div id="bottomHud" class="hud">
+                        <div>Zona: <span id="zoneIndicator">1 - Limpa</span></div>
+                        <div>Velocidade: <span id="speedIndicator">0</span> u/s</div>
+                    </div>
+                </div>
+                
+                <div id="gameOverScreen">
+                    <h2 id="gameOverTitle">Fim de Jogo</h2>
+                    <div id="factDisplay">
+                        "Cada ano, 8 milhões de toneladas de plástico chegam aos oceanos."
+                    </div>
+                    <button id="restartButton">Tentar Novamente</button>
+                    <button id="shareButton">Compartilhar Fato</button>
+                </div>
+            </div>
+
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script>
+                // ===========================================
+                // MÓDULO PRINCIPAL DO JOGO
+                // ===========================================
+                class AquaticRaceGame {
+                    constructor() {
+                        this.scene = null;
+                        this.camera = null;
+                        this.renderer = null;
+                        this.clock = new THREE.Clock();
+                        
+                        this.player = null;
+                        this.npcs = [];
+                        this.obstacles = [];
+                        this.powerUps = [];
+                        
+                        this.gameState = 'playing'; // playing, paused, gameOver
+                        this.currentZone = 1;
+                        
+                        this.playerStats = {
+                            health: 100,
+                            stamina: 100,
+                            speed: 0,
+                            maxSpeed: 30,
+                            position: new THREE.Vector3(0, 0, 0)
+                        };
+                        
+                        this.environmentStats = {
+                            waterQuality: 100, // 100 = ótima, 0 = tóxica
+                            pollutionLevel: 0
+                        };
+                        
+                        this.init();
+                    }
+                    
+                    init() {
+                        this.setupScene();
+                        this.setupLighting();
+                        this.setupPlayer();
+                        this.setupNPCs();
+                        this.setupEnvironment();
+                        this.setupUI();
+                        this.setupEventListeners();
+                        
+                        this.animate();
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE RENDERIZAÇÃO 3D
+                    // ===========================================
+                    setupScene() {
+                        // Cena
+                        this.scene = new THREE.Scene();
+                        this.scene.fog = new THREE.Fog(0x1a2980, 10, 50);
+                        
+                        // Câmera (3ª pessoa estilo arcade)
+                        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                        this.camera.position.set(0, 5, 10);
+                        
+                        // Renderizador
+                        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                        this.renderer.setSize(window.innerWidth, window.innerHeight);
+                        this.renderer.shadowMap.enabled = true;
+                        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                        document.getElementById('gameContainer').appendChild(this.renderer.domElement);
+                        
+                        // Controles de câmera (simplificado para demo)
+                        this.cameraTarget = new THREE.Vector3();
+                    }
+                    
+                    setupLighting() {
+                        // Luz ambiente
+                        const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+                        this.scene.add(ambientLight);
+                        
+                        // Luz direcional (simulando sol)
+                        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                        directionalLight.position.set(10, 20, 5);
+                        directionalLight.castShadow = true;
+                        directionalLight.shadow.mapSize.width = 2048;
+                        directionalLight.shadow.mapSize.height = 2048;
+                        this.scene.add(directionalLight);
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DO JOGADOR
+                    // ===========================================
+                    setupPlayer() {
+                        // Criar modelo básico do peixe (forma de torpedo)
+                        const fishGeometry = new THREE.ConeGeometry(0.5, 2, 8);
+                        fishGeometry.rotateX(Math.PI / 2);
+                        
+                        const fishMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0x00aaff,
+                            shininess: 100
+                        });
+                        
+                        this.player = new THREE.Mesh(fishGeometry, fishMaterial);
+                        this.player.castShadow = true;
+                        this.player.receiveShadow = true;
+                        this.player.position.set(0, 0, 0);
+                        
+                        this.scene.add(this.player);
+                    }
+                    
+                    updatePlayer(deltaTime) {
+                        // Simular movimento de nado procedural baseado na velocidade
+                        if (this.playerStats.speed > 0) {
+                            const tailMovement = Math.sin(Date.now() * 0.01 * this.playerStats.speed) * 0.1;
+                            this.player.rotation.z = tailMovement;
+                        }
+                        
+                        // Atualizar posição baseada na velocidade
+                        this.player.position.z -= this.playerStats.speed * deltaTime;
+                        
+                        // Atualizar estatísticas do jogador
+                        this.updatePlayerStats(deltaTime);
+                        
+                        // Atualizar câmera para seguir o jogador
+                        this.updateCamera();
+                    }
+                    
+                    updatePlayerStats(deltaTime) {
+                        // Reduzir estamina ao nadar rápido
+                        if (this.playerStats.speed > this.playerStats.maxSpeed * 0.7) {
+                            this.playerStats.stamina -= 10 * deltaTime;
+                        } else {
+                            // Recuperar estamina lentamente
+                            this.playerStats.stamina += 5 * deltaTime;
+                        }
+                        
+                        // Limitar valores
+                        this.playerStats.stamina = Math.max(0, Math.min(100, this.playerStats.stamina));
+                        
+                        // Atualizar UI
+                        document.getElementById('healthFill').style.width = `${this.playerStats.health}%`;
+                        document.getElementById('staminaFill').style.width = `${this.playerStats.stamina}%`;
+                        document.getElementById('speedIndicator').textContent = Math.round(this.playerStats.speed);
+                    }
+                    
+                    updateCamera() {
+                        // Seguir o jogador em terceira pessoa
+                        this.cameraTarget.copy(this.player.position);
+                        this.cameraTarget.z += 5;
+                        this.cameraTarget.y += 3;
+                        
+                        this.camera.position.lerp(this.cameraTarget, 0.05);
+                        this.camera.lookAt(this.player.position);
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE IA PARA NPCs
+                    // ===========================================
+                    setupNPCs() {
+                        // Criar alguns NPCs para demonstração
+                        for (let i = 0; i < 5; i++) {
+                            this.createNPC(i);
+                        }
+                    }
+                    
+                    createNPC(id) {
+                        const npcGeometry = new THREE.ConeGeometry(0.4, 1.8, 8);
+                        npcGeometry.rotateX(Math.PI / 2);
+                        
+                        const npcMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0xff6600,
+                            shininess: 100
+                        });
+                        
+                        const npc = new THREE.Mesh(npcGeometry, npcMaterial);
+                        npc.castShadow = true;
+                        npc.receiveShadow = true;
+                        
+                        // Posicionar NPC em posição inicial aleatória
+                        const startX = (Math.random() - 0.5) * 10;
+                        const startZ = -10 - (id * 5);
+                        npc.position.set(startX, 0, startZ);
+                        
+                        // Adicionar dados de IA ao NPC
+                        npc.userData = {
+                            id: id,
+                            speed: 10 + Math.random() * 10,
+                            health: 100,
+                            path: this.generateNPCPath(),
+                            currentPathIndex: 0,
+                            decisionTimer: 0,
+                            isDrafting: false
+                        };
+                        
+                        this.npcs.push(npc);
+                        this.scene.add(npc);
+                    }
+                    
+                    generateNPCPath() {
+                        // Gerar caminho simples para demonstração
+                        const path = [];
+                        const segments = 20;
+                        
+                        for (let i = 0; i < segments; i++) {
+                            // Criar pontos ao longo do caminho com variação lateral
+                            const x = (Math.random() - 0.5) * 8;
+                            const z = -i * 10;
+                            path.push(new THREE.Vector3(x, 0, z));
+                        }
+                        
+                        return path;
+                    }
+                    
+                    updateNPCs(deltaTime) {
+                        this.npcs.forEach(npc => {
+                            const npcData = npc.userData;
+                            
+                            // Comportamento de busca de caminho
+                            this.followPath(npc, npcData, deltaTime);
+                            
+                            // IA de decisão - reagir à poluição
+                            this.makeNPCDecision(npc, npcData, deltaTime);
+                            
+                            // Mecânica de drafting
+                            this.checkDrafting(npc, npcData);
+                            
+                            // Atualizar animação de nado
+                            this.updateNPCAnimation(npc, npcData, deltaTime);
+                        });
+                    }
+                    
+                    followPath(npc, npcData, deltaTime) {
+                        if (npcData.path.length === 0) return;
+                        
+                        const targetPoint = npcData.path[npcData.currentPathIndex];
+                        const direction = new THREE.Vector3().subVectors(targetPoint, npc.position);
+                        
+                        // Verificar se chegou ao ponto atual do caminho
+                        if (direction.length() < 2) {
+                            npcData.currentPathIndex = (npcData.currentPathIndex + 1) % npcData.path.length;
+                        } else {
+                            // Mover em direção ao ponto
+                            direction.normalize();
+                            npc.position.add(direction.multiplyScalar(npcData.speed * deltaTime));
+                            
+                            // Rotacionar na direção do movimento
+                            npc.lookAt(npc.position.clone().add(direction));
+                        }
+                    }
+                    
+                    makeNPCDecision(npc, npcData, deltaTime) {
+                        npcData.decisionTimer += deltaTime;
+                        
+                        // Tomar decisões a cada segundo
+                        if (npcData.decisionTimer > 1) {
+                            npcData.decisionTimer = 0;
+                            
+                            // Reagir à poluição baseado na zona atual
+                            if (this.currentZone === 3 && npcData.health < 30) {
+                                // Em zona pesada com saúde baixa, procurar rota alternativa
+                                this.avoidPollution(npc, npcData);
+                            }
+                            
+                            // Usar power-up se disponível e saúde crítica
+                            if (npcData.health < 20 && Math.random() > 0.7) {
+                                this.usePurificationPowerUp(npc, npcData);
+                            }
+                        }
+                    }
+                    
+                    avoidPollution(npc, npcData) {
+                        // Simular busca por rota menos poluída
+                        // Na implementação completa, isso verificaria dados de poluição do ambiente
+                        const avoidanceDirection = new THREE.Vector3(
+                            (Math.random() - 0.5) * 2,
+                            0,
+                            (Math.random() - 0.5) * 2
+                        );
+                        
+                        // Modificar caminho para evitar poluição
+                        for (let i = npcData.currentPathIndex; i < Math.min(npcData.currentPathIndex + 5, npcData.path.length); i++) {
+                            npcData.path[i].add(avoidanceDirection);
+                        }
+                    }
+                    
+                    usePurificationPowerUp(npc, npcData) {
+                        // Simular uso de power-up de purificação
+                        npcData.health += 30;
+                        npcData.health = Math.min(100, npcData.health);
+                        
+                        // Efeito visual temporário
+                        npc.material.color.set(0x00ff00);
+                        setTimeout(() => {
+                            npc.material.color.set(0xff6600);
+                        }, 1000);
+                    }
+                    
+                    checkDrafting(npc, npcData) {
+                        // Verificar se o jogador está atrás deste NPC (mecânica de drafting)
+                        const playerToNPC = new THREE.Vector3().subVectors(npc.position, this.player.position);
+                        const distance = playerToNPC.length();
+                        const dotProduct = playerToNPC.normalize().dot(this.player.getWorldDirection(new THREE.Vector3()));
+                        
+                        // Se o jogador está próximo e atrás do NPC, aplicar drafting
+                        if (distance < 3 && dotProduct > 0.8) {
+                            npcData.isDrafting = true;
+                            // NPC sofre penalidade de velocidade quando está sendo "draftado"
+                            npcData.speed = Math.max(5, npcData.speed - 2);
+                        } else {
+                            npcData.isDrafting = false;
+                            // Restaurar velocidade normal
+                            npcData.speed = 15 + Math.random() * 5;
+                        }
+                    }
+                    
+                    updateNPCAnimation(npc, npcData, deltaTime) {
+                        // Animação procedural de nado baseada na velocidade
+                        const tailMovement = Math.sin(Date.now() * 0.01 * npcData.speed) * 0.1;
+                        npc.rotation.z = tailMovement;
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE AMBIENTE E NÍVEIS
+                    // ===========================================
+                    setupEnvironment() {
+                        // Criar pista básica
+                        this.createTrack();
+                        
+                        // Gerar obstáculos iniciais
+                        this.generateObstacles();
+                    }
+                    
+                    createTrack() {
+                        // Criar pista simples para demonstração
+                        const trackGeometry = new THREE.PlaneGeometry(100, 1000);
+                        const trackMaterial = new THREE.MeshPhongMaterial({ 
+                            color: 0x1a2980,
+                            side: THREE.DoubleSide
+                        });
+                        
+                        const track = new THREE.Mesh(trackGeometry, trackMaterial);
+                        track.rotation.x = -Math.PI / 2;
+                        track.position.y = -1;
+                        track.receiveShadow = true;
+                        
+                        this.scene.add(track);
+                    }
+                    
+                    generateObstacles() {
+                        // Gerar obstáculos aleatórios ao longo da pista
+                        const obstacleCount = 20;
+                        
+                        for (let i = 0; i < obstacleCount; i++) {
+                            const obstacleType = Math.floor(Math.random() * 3); // 0: bóia, 1: rede, 2: lixo
+                            const obstacle = this.createObstacle(obstacleType);
+                            
+                            // Posicionar em local aleatório ao longo da pista
+                            obstacle.position.x = (Math.random() - 0.5) * 15;
+                            obstacle.position.z = -50 - (i * 30);
+                            
+                            this.obstacles.push(obstacle);
+                            this.scene.add(obstacle);
+                        }
+                    }
+                    
+                    createObstacle(type) {
+                        let geometry, material;
+                        
+                        switch(type) {
+                            case 0: // Bóia
+                                geometry = new THREE.CylinderGeometry(0.5, 0.5, 0.2, 16);
+                                material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+                                break;
+                            case 1: // Rede
+                                geometry = new THREE.BoxGeometry(2, 3, 0.1);
+                                material = new THREE.MeshPhongMaterial({ color: 0xaaaaaa });
+                                break;
+                            case 2: // Lixo
+                                geometry = new THREE.SphereGeometry(0.7, 8, 6);
+                                material = new THREE.MeshPhongMaterial({ color: 0x666666 });
+                                break;
+                        }
+                        
+                        const obstacle = new THREE.Mesh(geometry, material);
+                        obstacle.castShadow = true;
+                        obstacle.receiveShadow = true;
+                        
+                        // Adicionar dados de colisão
+                        obstacle.userData = {
+                            type: type,
+                            damage: type === 1 ? 20 : 10 // Redes causam mais dano
+                        };
+                        
+                        return obstacle;
+                    }
+                    
+                    updateEnvironment(deltaTime) {
+                        // Atualizar zona baseada na posição do jogador
+                        this.updateZone();
+                        
+                        // Atualizar qualidade da água baseada na zona
+                        this.updateWaterQuality();
+                    }
+                    
+                    updateZone() {
+                        const playerZ = Math.abs(this.player.position.z);
+                        
+                        if (playerZ < 100) {
+                            this.currentZone = 1; // Zona Limpa
+                        } else if (playerZ < 300) {
+                            this.currentZone = 2; // Zona Moderada
+                        } else {
+                            this.currentZone = 3; // Zona Pesada
+                        }
+                        
+                        // Atualizar indicador de zona na UI
+                        const zoneNames = ['1 - Limpa', '2 - Moderada', '3 - Pesada'];
+                        document.getElementById('zoneIndicator').textContent = zoneNames[this.currentZone - 1];
+                        
+                        // Aplicar efeitos visuais baseados na zona
+                        this.applyZoneEffects();
+                    }
+                    
+                    applyZoneEffects() {
+                        // Aplicar efeitos visuais baseados na zona de poluição
+                        switch(this.currentZone) {
+                            case 1: // Zona Limpa
+                                this.scene.fog.near = 30;
+                                this.scene.fog.far = 80;
+                                this.scene.fog.color.set(0x1a2980);
+                                break;
+                            case 2: // Zona Moderada
+                                this.scene.fog.near = 20;
+                                this.scene.fog.far = 60;
+                                this.scene.fog.color.set(0x3a4980);
+                                break;
+                            case 3: // Zona Pesada
+                                this.scene.fog.near = 10;
+                                this.scene.fog.far = 40;
+                                this.scene.fog.color.set(0x5a2920);
+                                break;
+                        }
+                    }
+                    
+                    updateWaterQuality() {
+                        // Calcular qualidade da água baseada na zona
+                        const baseQuality = 100 - (this.currentZone * 25);
+                        const randomVariation = (Math.random() - 0.5) * 10;
+                        this.environmentStats.waterQuality = Math.max(0, Math.min(100, baseQuality + randomVariation));
+                        
+                        // Atualizar UI
+                        document.getElementById('pollutionFill').style.width = `${100 - this.environmentStats.waterQuality}%`;
+                        
+                        // Atualizar texto descritivo
+                        let qualityText = '';
+                        if (this.environmentStats.waterQuality > 70) qualityText = 'Ótima';
+                        else if (this.environmentStats.waterQuality > 40) qualityText = 'Moderada';
+                        else if (this.environmentStats.waterQuality > 20) qualityText = 'Ruim';
+                        else qualityText = 'Tóxica';
+                        
+                        document.getElementById('waterQuality').textContent = qualityText;
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE FÍSICA E COLISÕES
+                    // ===========================================
+                    checkCollisions() {
+                        // Verificar colisões entre jogador e obstáculos
+                        this.obstacles.forEach(obstacle => {
+                            const distance = this.player.position.distanceTo(obstacle.position);
+                            
+                            if (distance < 1.5) { // Distância de colisão
+                                this.handleCollision(obstacle);
+                            }
+                        });
+                        
+                        // Verificar colisões entre jogador e NPCs
+                        this.npcs.forEach(npc => {
+                            const distance = this.player.position.distanceTo(npc.position);
+                            
+                            if (distance < 1.2) { // Distância de colisão com NPC
+                                this.handleNPCCollision(npc);
+                            }
+                        });
+                    }
+                    
+                    handleCollision(obstacle) {
+                        // Aplicar dano baseado no tipo de obstáculo
+                        this.playerStats.health -= obstacle.userData.damage;
+                        
+                        // Aplicar força de repulsão
+                        const direction = new THREE.Vector3().subVectors(this.player.position, obstacle.position).normalize();
+                        this.player.position.add(direction.multiplyScalar(2));
+                        
+                        // Reduzir velocidade temporariamente
+                        this.playerStats.speed = Math.max(0, this.playerStats.speed - 5);
+                        
+                        // Verificar se o jogador morreu
+                        if (this.playerStats.health <= 0) {
+                            this.gameOver();
+                        }
+                    }
+                    
+                    handleNPCCollision(npc) {
+                        // Colisão com NPC causa dano menor
+                        this.playerStats.health -= 5;
+                        
+                        // Aplicar força de repulsão
+                        const direction = new THREE.Vector3().subVectors(this.player.position, npc.position).normalize();
+                        this.player.position.add(direction.multiplyScalar(1.5));
+                        
+                        // Verificar se o jogador morreu
+                        if (this.playerStats.health <= 0) {
+                            this.gameOver();
+                        }
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE UI/UX
+                    // ===========================================
+                    setupUI() {
+                        // Configurar eventos dos botões
+                        document.getElementById('restartButton').addEventListener('click', () => {
+                            this.restartGame();
+                        });
+                        
+                        document.getElementById('shareButton').addEventListener('click', () => {
+                            this.shareFact();
+                        });
+                    }
+                    
+                    updateUI() {
+                        // Atualizar barras de status
+                        document.getElementById('healthFill').style.width = `${this.playerStats.health}%`;
+                        document.getElementById('staminaFill').style.width = `${this.playerStats.stamina}%`;
+                        document.getElementById('pollutionFill').style.width = `${100 - this.environmentStats.waterQuality}%`;
+                    }
+                    
+                    gameOver() {
+                        this.gameState = 'gameOver';
+                        
+                        // Mostrar tela de game over
+                        document.getElementById('gameOverScreen').style.display = 'block';
+                        document.getElementById('gameOverTitle').textContent = 'Fim de Jogo';
+                        
+                        // Mostrar fato ambiental aleatório
+                        this.displayRandomFact();
+                    }
+                    
+                    displayRandomFact() {
+                        const facts = [
+                            "Cada ano, 8 milhões de toneladas de plástico chegam aos oceanos.",
+                            "Mais de 100 mil animais marinhos morrem anualmente por ingestão de plástico.",
+                            "Até 2050, pode haver mais plástico que peixes nos oceanos.",
+                            "A poluição das águas afeta 1 bilhão de pessoas no mundo.",
+                            "Apenas 9% de todo o plástico já produzido foi reciclado."
+                        ];
+                        
+                        const randomFact = facts[Math.floor(Math.random() * facts.length)];
+                        document.getElementById('factDisplay').textContent = `"${randomFact}"`;
+                    }
+                    
+                    shareFact() {
+                        // Simular compartilhamento em redes sociais
+                        const factText = document.getElementById('factDisplay').textContent;
+                        alert(`Compartilhando fato ambiental:\n${factText}\n\n(Em uma implementação completa, isso abriria diálogos de compartilhamento nativos)`);
+                    }
+                    
+                    restartGame() {
+                        // Recarregar a página para reiniciar (em implementação completa, resetaria o estado do jogo)
+                        location.reload();
+                    }
+                    
+                    // ===========================================
+                    // MÓDULO DE CONTROLES E EVENTOS
+                    // ===========================================
+                    setupEventListeners() {
+                        // Controles de teclado
+                        document.addEventListener('keydown', (event) => {
+                            if (this.gameState !== 'playing') return;
+                            
+                            switch(event.key) {
+                                case 'ArrowUp':
+                                case 'w':
+                                    this.playerStats.speed = Math.min(this.playerStats.maxSpeed, this.playerStats.speed + 5);
+                                    break;
+                                case 'ArrowDown':
+                                case 's':
+                                    this.playerStats.speed = Math.max(0, this.playerStats.speed - 5);
+                                    break;
+                                case 'ArrowLeft':
+                                case 'a':
+                                    this.player.position.x = Math.max(-7, this.player.position.x - 0.5);
+                                    break;
+                                case 'ArrowRight':
+                                case 'd':
+                                    this.player.position.x = Math.min(7, this.player.position.x + 0.5);
+                                    break;
+                                case ' ': // Barra de espaço para drafting boost
+                                    this.applyDraftingBoost();
+                                    break;
+                            }
+                        });
+                        
+                        // Redimensionar janela
+                        window.addEventListener('resize', () => {
+                            this.camera.aspect = window.innerWidth / window.innerHeight;
+                            this.camera.updateProjectionMatrix();
+                            this.renderer.setSize(window.innerWidth, window.innerHeight);
+                        });
+                    }
+                    
+                    applyDraftingBoost() {
+                        // Verificar se o jogador está atrás de um NPC para aplicar drafting
+                        let canBoost = false;
+                        
+                        this.npcs.forEach(npc => {
+                            const playerToNPC = new THREE.Vector3().subVectors(npc.position, this.player.position);
+                            const distance = playerToNPC.length();
+                            const dotProduct = playerToNPC.normalize().dot(this.player.getWorldDirection(new THREE.Vector3()));
+                            
+                            if (distance < 3 && dotProduct > 0.8) {
+                                canBoost = true;
+                            }
+                        });
+                        
+                        if (canBoost && this.playerStats.stamina > 20) {
+                            this.playerStats.speed = Math.min(this.playerStats.maxSpeed * 1.5, this.playerStats.speed + 10);
+                            this.playerStats.stamina -= 20;
+                        }
+                    }
+                    
+                    // ===========================================
+                    // LOOP PRINCIPAL DO JOGO
+                    // ===========================================
+                    animate() {
+                        requestAnimationFrame(() => this.animate());
+                        
+                        const deltaTime = Math.min(0.05, this.clock.getDelta());
+                        
+                        if (this.gameState === 'playing') {
+                            this.updatePlayer(deltaTime);
+                            this.updateNPCs(deltaTime);
+                            this.updateEnvironment(deltaTime);
+                            this.checkCollisions();
+                            this.updateUI();
+                        }
+                        
+                        this.renderer.render(this.scene, this.camera);
+                    }
+                }
+                
+                // Iniciar o jogo quando a página carregar
+                window.addEventListener('load', () => {
+                    new AquaticRaceGame();
+                });
+            </script>
+        </body>
+        </html>
+        .stamina > 20) {
+                            this.playerStats.speed = Math.min(this.playerStats.maxSpeed * 1.8, this.playerStats.speed + 15);
+                            this.playerStats.stamina -= 20;
+                            this.playerStats.isDrafting = true;
+                            
+                            setTimeout(() => {
+                                this.playerStats.isDrafting = false;
+                            }, 2000);
+                        }
+                    }
+                    
+                    // ===========================================
+                    // LOOP PRINCIPAL DO JOGO AVANÇADO
+                    // ===========================================
+                    animate() {
+                        requestAnimationFrame(() => this.animate());
+                        
+                        const deltaTime = Math.min(0.05, this.clock.getDelta());
+                        this.gameTime += deltaTime;
+                        
+                        if (this.gameState === 'playing') {
+                            this.handlePlayerInput(deltaTime);
+                            this.updatePlayer(deltaTime);
+                            this.updateNPCs(deltaTime);
+                            this.updateEnvironment(deltaTime);
+                            this.updateBubbleParticles(deltaTime);
+                            this.checkCollisions();
+                            this.updateUI();
+                        }
+                        
+                        this.renderer.render(this.scene, this.camera);
+                    }
+                }
+                
+                // Iniciar o jogo quando a página carregar
+                window.addEventListener('load', () => {
+                    new AquaticRaceGame();
+                });
+            </script>
+        </body>
+        </html>
